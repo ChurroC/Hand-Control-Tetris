@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "hand-control-tetris"
+version = "0.1.0"
+description = ""
+authors = ["ChurroC <charanvenkatchandran@gmail.com>"]
+readme = "README.md"
+packages = [{include = "hand_control_tetris"}]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+
+[tool.poetry.scripts]
+start = "hand_control_tetris/tetris.py:start"
+dev_start = "watchmedo:shell-command --patterns='*.py' --command='poetry run start'"
+
+[tool.poetry.group.dev.dependencies]
+watchdog = "^2.2.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
