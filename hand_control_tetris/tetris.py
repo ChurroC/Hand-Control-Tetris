@@ -2,6 +2,7 @@ import os
 import random
 import time
 import turtle
+import threading
 
 
 class Shape():
@@ -38,6 +39,12 @@ class Shape():
         if self.x+self.width-1 < 11 and grid[self.y][self.x+self.width] == 0 and grid[self.y+self.height-1][self.x+self.width] == 0:
             self.erase_shape(grid)
             self.x = self.x+1
+            self.draw_shape(grid)
+
+    def move_down(self, grid):
+        if self.y+self.height-1 < 23 and grid[self.y+self.height][self.x] == 0 and grid[self.y+self.height][self.x+self.width-1] == 0:
+            self.erase_shape(grid)
+            self.y = self.y+1
             self.draw_shape(grid)
 
     def draw_shape(self, grid):
@@ -97,7 +104,7 @@ def draw_grid(pen, grid):
     top = 240
     left = -120
     shapes = ["black", "#00f0f0", "blue", "orange",
-              "yellow", "green", ("hand_control_tetris/Image/purple.gif", "shape"), "#f00000"]
+              "yellow", "green", (os.path.join(os.path.dirname(__file__), 'Image', 'purple.gif'), "shape"), "#f00000"]
     for y in range(len(grid)):
         for x in range(len(grid[0])):
             screen_x = left+(x*20)
@@ -182,20 +189,22 @@ wn.title("Tetris")
 wn.bgcolor("#e6e1d5")
 wn.setup(width=480, height=640)
 wn.tracer(0, 1)
-wn.register_shape("hand_control_tetris/Image/purple.gif")
+wn.register_shape(os.path.join(
+    os.path.dirname(__file__), 'Image', 'purple.gif'
+))
 
 shape = Shape()
 
 wn.listen()
 wn.onkeypress(lambda: shape.move_left(grid), "Left")
 wn.onkeypress(lambda: shape.move_right(grid), "Right")
-wn.onkeypress(lambda: shape.move_right(grid), "Up")
+wn.onkeypress(lambda: shape.move_down(grid), "Down")
 wn.onkeypress(lambda: shape.rotate(grid), "space")
 
-delay = .01
+delay = .5
 
 score = 0
-
+"""
 while True:
     wn.update()
     if shape.y == 23-shape.height+1:
@@ -211,3 +220,36 @@ while True:
     draw_grid(pen, grid)
     draw_score(pen, score)
     time.sleep(delay)
+"""
+
+
+def test():
+    global shape
+    if shape.y == 23-shape.height+1:
+        shape = Shape()
+        check_grid(grid)
+    if shape.can_move(grid):
+        shape.erase_shape(grid)
+        shape.y = shape.y+1
+        shape.draw_shape(grid)
+    else:
+        shape = Shape()
+        check_grid(grid)
+
+
+def set_interval(func, sec):
+    def func_wrapper():
+        set_interval(func, sec)
+        func()
+    t = threading.Timer(sec, func_wrapper)
+    t.daemon = True
+    t.start()
+    return t
+
+
+set_interval(test, .1)
+
+while True:
+    draw_grid(pen, grid)
+    draw_score(pen, score)
+    time.sleep(.15)

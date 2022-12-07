@@ -8,10 +8,11 @@ packages = [{include = "hand_control_tetris"}]
 
 [tool.poetry.dependencies]
 python = "^3.8"
+opencv-python = "^4.6.0.66"
 
 [tool.poetry.scripts]
 start = "hand_control_tetris/tetris.py:start"
-dev_start = "watchmedo:shell-command --patterns='*.py' --command='poetry run start'"
+dev_start = "watchmedo:run"
 
 [tool.poetry.group.dev.dependencies]
 watchdog = "^2.2.0"
