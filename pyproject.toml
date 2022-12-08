@@ -9,6 +9,7 @@ packages = [{include = "hand_control_tetris"}]
 [tool.poetry.dependencies]
 python = "^3.8"
 opencv-python = "^4.6.0.66"
+mediapipe = "^0.9.0.1"
 
 [tool.poetry.scripts]
 start = "hand_control_tetris/tetris.py:start"
