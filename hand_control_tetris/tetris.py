@@ -3,7 +3,10 @@ import random
 import time
 import turtle
 import threading
-
+import hand_control_tetris.hand_controller as hc
+import cv2
+from PIL import Image
+import numpy as np
 
 class Shape():
     def __init__(self):
@@ -89,12 +92,20 @@ def draw_border(pen):
     pen.pencolor("#505050")
     pen.pensize(3)
     pen.penup()
+    """
     pen.goto(-140, 260)
     pen.pendown()
     pen.goto(-140, -240)
     pen.goto(120, -240)
     pen.goto(120, 260)
     pen.goto(-140, 260)
+    """
+    pen.goto(-270, 260)
+    pen.pendown()
+    pen.goto(-270, -240)
+    pen.goto(-10, -240)
+    pen.goto(-10, 260)
+    pen.goto(-270, 260)
     pen.hideturtle()
     pen.penup()
 
@@ -102,7 +113,8 @@ def draw_border(pen):
 def draw_grid(pen, grid):
     pen.clear()
     top = 240
-    left = -120
+    left = -250
+    #-120
     shapes = ["black", "#00f0f0", "blue", "orange",
               "yellow", "green", (os.path.join(os.path.dirname(__file__), 'Image', 'purple.gif'), "shape"), "#f00000"]
     for y in range(len(grid)):
@@ -116,8 +128,25 @@ def draw_grid(pen, grid):
             else:
                 pen.color(shape)
             pen.goto(screen_x, screen_y)
-            pen.stamp()
             pen.shape("square")
+            pen.stamp()
+
+    #cv2.putText(img, str(int(fps)), (10, 70),
+    #            cv2.FONT_HERSHEY_PLAIN, 3, (255, 0, 255), 3)
+    try:
+        global img, wn
+        img = Image.fromarray(img.astype('uint8')).convert('RGB')
+        img.thumbnail((220,220),Image.ANTIALIAS)
+        img.save('hand_control_tetris/Image/purple.gif')
+        print(img)
+        wn.register_shape('hand_control_tetris/Image/purple.gif')
+        pen.shape('hand_control_tetris/Image/purple.gif')
+        #-10 + 50 + half of the width of the shape (110) = 150
+        pen.goto(150, 100)
+        pen.stamp()
+        pen.shape("square")
+    except:
+        print("no image")
 
 
 def check_grid(grid):
@@ -141,7 +170,7 @@ def check_grid(grid):
 def draw_score(pen, score):
     pen.hideturtle()
     pen.color("blue")
-    pen.goto(-55, 280)
+    pen.goto(95, 232)
     gamescore = "Score:"+str(score)
     pen.write(gamescore, font=("Times", 24, "normal"))
 
@@ -173,55 +202,123 @@ grid = [
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
 ]
 
+def main():
+    pen = turtle.Turtle()
+    pen.penup()
+    pen.speed(0)
+    pen.shape("square")
+    pen.setundobuffer(None)
 
-pen = turtle.Turtle()
-pen.penup()
-pen.speed(0)
-pen.shape("square")
-pen.setundobuffer(None)
+    border_pen = turtle.Turtle()
+    border_pen.speed(0)
+    draw_border(border_pen)
 
-border_pen = turtle.Turtle()
-border_pen.speed(0)
-draw_border(border_pen)
+    global wn
+    wn = turtle.Screen()
+    wn.title("Tetris")
+    wn.bgcolor("#e6e1d5")
+    wn.setup(width=640, height=640)
+    wn.tracer(0, 1)
+    wn.register_shape(os.path.join(
+        os.path.dirname(__file__), 'Image', 'purple.gif'
+    ))
 
-wn = turtle.Screen()
-wn.title("Tetris")
-wn.bgcolor("#e6e1d5")
-wn.setup(width=480, height=640)
-wn.tracer(0, 1)
-wn.register_shape(os.path.join(
-    os.path.dirname(__file__), 'Image', 'purple.gif'
-))
+    shape = Shape()
 
-shape = Shape()
+    wn.listen()
+    wn.onkeypress(lambda: shape.move_left(grid), "Left")
+    wn.onkeypress(lambda: shape.move_right(grid), "Right")
+    wn.onkeypress(lambda: shape.move_down(grid), "Down")
+    wn.onkeypress(lambda: shape.rotate(grid), "space")
 
-wn.listen()
-wn.onkeypress(lambda: shape.move_left(grid), "Left")
-wn.onkeypress(lambda: shape.move_right(grid), "Right")
-wn.onkeypress(lambda: shape.move_down(grid), "Down")
-wn.onkeypress(lambda: shape.rotate(grid), "space")
+    delay = .5
 
-delay = .5
+    score = 0
 
-score = 0
+
+    cap = cv2.VideoCapture(0)
+    detector = hc.handDetector()
+
+    global img
+    def camera():
+        left_wait = 0
+        right_wait = 0
+        rotate_wait = 0
+        down_wait = 0
+        while True:
+            success, img = cap.read()
+            img = detector.findHands(img)
+            lmlist = detector.findPosition(img)
+            if len(lmlist) > 20:
+                if (lmlist[0][1] > lmlist[3][1] > lmlist[4][1]) and not(lmlist[20][2] > lmlist[17][2]):
+                    right_wait += 1
+                if not(lmlist[0][1] > lmlist[3][1] > lmlist[4][1]) and (lmlist[20][2] > lmlist[17][2]):
+                    left_wait += 1
+                if (lmlist[0][1] > lmlist[3][1] > lmlist[4][1]) and (lmlist[20][2] > lmlist[17][2]):
+                    rotate_wait += 1
+            if left_wait >= 4:
+                shape.move_left(grid)
+                left_wait = 0
+                right_wait = 0
+                rotate_wait = 0
+                down_wait = 0
+            if right_wait >= 4:
+                shape.move_right(grid)
+                left_wait = 0
+                right_wait = 0
+                rotate_wait = 0
+                down_wait = 0
+            if rotate_wait >= 4:
+                shape.rotate(grid)
+                left_wait = 0
+                right_wait = 0
+                rotate_wait = 0
+                down_wait = 0
+            img = cv2.flip(img, 1)
+            print(left_wait, right_wait, rotate_wait, down_wait)
+
+    #thread = threading.Thread(target=camera)
+    #thread.daemon = True
+    #thread.start()
+
+    left_wait = 0
+    right_wait = 0
+    rotate_wait = 0
+
+    while True:
+        wn.update()
+        if shape.y == 23-shape.height+1:
+            shape = Shape()
+            check_grid(grid)
+        if shape.can_move(grid):
+            shape.erase_shape(grid)
+            shape.y = shape.y+1
+            shape.draw_shape(grid)
+        else:
+            shape = Shape()
+            check_grid(grid)
+        draw_grid(pen, grid)
+        draw_score(pen, score)
+        time.sleep(delay)
+        #cv2.imshow("Image", img)
+        #cv2.waitKey(1)
+
+        success, img = cap.read()
+        img = detector.findHands(img)
+        lmlist = detector.findPosition(img)
+        if len(lmlist) > 20:
+            if (lmlist[0][1] > lmlist[3][1] > lmlist[4][1]) and not(lmlist[20][2] > lmlist[17][2]):
+                shape.move_right(grid)
+            if not(lmlist[0][1] > lmlist[3][1] > lmlist[4][1]) and (lmlist[20][2] > lmlist[17][2]):
+                shape.move_left(grid)
+            if (lmlist[0][1] > lmlist[3][1] > lmlist[4][1]) and (lmlist[20][2] > lmlist[17][2]):
+                shape.rotate(grid)
+
+
+
+if __name__ == "__main__": main()
+
 """
-while True:
-    wn.update()
-    if shape.y == 23-shape.height+1:
-        shape = Shape()
-        check_grid(grid)
-    if shape.can_move(grid):
-        shape.erase_shape(grid)
-        shape.y = shape.y+1
-        shape.draw_shape(grid)
-    else:
-        shape = Shape()
-        check_grid(grid)
-    draw_grid(pen, grid)
-    draw_score(pen, score)
-    time.sleep(delay)
-"""
-
 
 def test():
     global shape
@@ -253,3 +350,4 @@ while True:
     draw_grid(pen, grid)
     draw_score(pen, score)
     time.sleep(.15)
+"""

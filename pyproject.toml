@@ -10,13 +10,11 @@ packages = [{include = "hand_control_tetris"}]
 python = "^3.8"
 opencv-python = "^4.6.0.66"
 mediapipe = "^0.9.0.1"
+pillow = "^9.3.0"
 
 [tool.poetry.scripts]
-start = "hand_control_tetris/tetris.py:start"
-dev_start = "watchmedo:run"
-
-[tool.poetry.group.dev.dependencies]
-watchdog = "^2.2.0"
+start = "hand_control_tetris.tetris:main"
+camera = "hand_control_tetris.hand_controller:main"
 
 [build-system]
 requires = ["poetry-core"]

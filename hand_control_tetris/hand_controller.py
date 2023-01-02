@@ -38,8 +38,7 @@ class handDetector():
                         cv2.circle(img, (cx, cy), 3, (255, 0, 255), cv2.FILLED)
         return lmlist
 
-
-if __name__ == "__main__":
+def main():
     pTime = 0
     cTime = 0
     cap = cv2.VideoCapture(0)
@@ -62,3 +61,6 @@ if __name__ == "__main__":
 
         cv2.imshow("Image", img)
         cv2.waitKey(1)
+
+
+if __name__ == "__main__": main()
