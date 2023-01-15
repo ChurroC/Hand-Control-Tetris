@@ -2,11 +2,22 @@ import os
 import random
 import time
 import turtle
-import threading
 import hand_control_tetris.hand_controller as hc
 import cv2
 from PIL import Image
 import numpy as np
+import sys
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+print(sys._MEIPASS)
+
 
 class Shape():
     def __init__(self):
@@ -116,7 +127,7 @@ def draw_grid(pen, grid):
     left = -250
     #-120
     shapes = ["black", "#00f0f0", "blue", "orange",
-              "yellow", "green", (os.path.join(os.path.dirname(__file__), 'Image', 'purple.gif'), "shape"), "#f00000"]
+              "yellow", "green", (resource_path('hand_control_tetris/Image/purpleTetris.gif'), "shape"), "#f00000"]
     for y in range(len(grid)):
         for x in range(len(grid[0])):
             screen_x = left+(x*20)
@@ -131,22 +142,19 @@ def draw_grid(pen, grid):
             pen.shape("square")
             pen.stamp()
 
-    #cv2.putText(img, str(int(fps)), (10, 70),
-    #            cv2.FONT_HERSHEY_PLAIN, 3, (255, 0, 255), 3)
     try:
         global img, wn
         img = Image.fromarray(img.astype('uint8')).convert('RGB')
         img.thumbnail((220,220),Image.ANTIALIAS)
-        img.save('hand_control_tetris/Image/purple.gif')
-        print(img)
-        wn.register_shape('hand_control_tetris/Image/purple.gif')
-        pen.shape('hand_control_tetris/Image/purple.gif')
+        img.save(resource_path('hand_control_tetris/Image/purple.gif'))
+        wn.register_shape(resource_path('hand_control_tetris/Image/purple.gif'))
+        pen.shape(resource_path('hand_control_tetris/Image/purple.gif'))
         #-10 + 50 + half of the width of the shape (110) = 150
         pen.goto(150, 100)
         pen.stamp()
         pen.shape("square")
-    except:
-        print("no image")
+    except NameError:
+        print(NameError)
 
 
 def check_grid(grid):
@@ -219,9 +227,7 @@ def main():
     wn.bgcolor("#e6e1d5")
     wn.setup(width=640, height=640)
     wn.tracer(0, 1)
-    wn.register_shape(os.path.join(
-        os.path.dirname(__file__), 'Image', 'purple.gif'
-    ))
+    wn.register_shape(resource_path('hand_control_tetris/Image/purpleTetris.gif'))
 
     shape = Shape()
 
@@ -238,52 +244,7 @@ def main():
 
     cap = cv2.VideoCapture(0)
     detector = hc.handDetector()
-
     global img
-    def camera():
-        left_wait = 0
-        right_wait = 0
-        rotate_wait = 0
-        down_wait = 0
-        while True:
-            success, img = cap.read()
-            img = detector.findHands(img)
-            lmlist = detector.findPosition(img)
-            if len(lmlist) > 20:
-                if (lmlist[0][1] > lmlist[3][1] > lmlist[4][1]) and not(lmlist[20][2] > lmlist[17][2]):
-                    right_wait += 1
-                if not(lmlist[0][1] > lmlist[3][1] > lmlist[4][1]) and (lmlist[20][2] > lmlist[17][2]):
-                    left_wait += 1
-                if (lmlist[0][1] > lmlist[3][1] > lmlist[4][1]) and (lmlist[20][2] > lmlist[17][2]):
-                    rotate_wait += 1
-            if left_wait >= 4:
-                shape.move_left(grid)
-                left_wait = 0
-                right_wait = 0
-                rotate_wait = 0
-                down_wait = 0
-            if right_wait >= 4:
-                shape.move_right(grid)
-                left_wait = 0
-                right_wait = 0
-                rotate_wait = 0
-                down_wait = 0
-            if rotate_wait >= 4:
-                shape.rotate(grid)
-                left_wait = 0
-                right_wait = 0
-                rotate_wait = 0
-                down_wait = 0
-            img = cv2.flip(img, 1)
-            print(left_wait, right_wait, rotate_wait, down_wait)
-
-    #thread = threading.Thread(target=camera)
-    #thread.daemon = True
-    #thread.start()
-
-    left_wait = 0
-    right_wait = 0
-    rotate_wait = 0
 
     while True:
         wn.update()
@@ -300,54 +261,20 @@ def main():
         draw_grid(pen, grid)
         draw_score(pen, score)
         time.sleep(delay)
-        #cv2.imshow("Image", img)
-        #cv2.waitKey(1)
 
         success, img = cap.read()
         img = detector.findHands(img)
         lmlist = detector.findPosition(img)
         if len(lmlist) > 20:
-            if (lmlist[0][1] > lmlist[3][1] > lmlist[4][1]) and not(lmlist[20][2] > lmlist[17][2]):
-                shape.move_right(grid)
-            if not(lmlist[0][1] > lmlist[3][1] > lmlist[4][1]) and (lmlist[20][2] > lmlist[17][2]):
-                shape.move_left(grid)
-            if (lmlist[0][1] > lmlist[3][1] > lmlist[4][1]) and (lmlist[20][2] > lmlist[17][2]):
+            if (lmlist[4][1] > lmlist[3][1]) and (lmlist[4][2] < lmlist[0][2]) and (lmlist[17][1] > lmlist[20][1]) and (lmlist[20][2] < lmlist[17][2]):
                 shape.rotate(grid)
+            elif (lmlist[4][1] > lmlist[3][1]) and (lmlist[4][2] < lmlist[0][2]):
+                shape.move_left(grid)
+            elif (lmlist[17][1] > lmlist[20][1]) and (lmlist[20][2] < lmlist[17][2]):
+                shape.move_right(grid)
+        else:
+            shape.move_down(grid)
 
 
 
 if __name__ == "__main__": main()
-
-"""
-
-def test():
-    global shape
-    if shape.y == 23-shape.height+1:
-        shape = Shape()
-        check_grid(grid)
-    if shape.can_move(grid):
-        shape.erase_shape(grid)
-        shape.y = shape.y+1
-        shape.draw_shape(grid)
-    else:
-        shape = Shape()
-        check_grid(grid)
-
-
-def set_interval(func, sec):
-    def func_wrapper():
-        set_interval(func, sec)
-        func()
-    t = threading.Timer(sec, func_wrapper)
-    t.daemon = True
-    t.start()
-    return t
-
-
-set_interval(test, .1)
-
-while True:
-    draw_grid(pen, grid)
-    draw_score(pen, score)
-    time.sleep(.15)
-"""
